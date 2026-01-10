@@ -19,7 +19,7 @@ function App() {
   const [emailLoading, setEmailLoading] = useState(false);
 
   useEffect(() => {
-    axios.get(`http://localhost:5000/api/next-invoice-number?type=${formData.invoiceType}`)
+    axios.get(`https://meetra-billing-app.onrender.com/api/next-invoice-number?type=${formData.invoiceType}`)
       .then(res => setFormData(prev => ({ ...prev, customInvoiceNo: res.data.nextInvoiceNo })))
       .catch(err => console.error(err));
   }, [formData.invoiceType]);
@@ -67,7 +67,7 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:5000/api/create-invoice', formData, { responseType: 'blob' });
+      const response = await axios.post('https://meetra-billing-app.onrender.com/api/create-invoice', formData, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -86,7 +86,7 @@ function App() {
     if (!customerEmail) return;
     setEmailLoading(true);
     try {
-        await axios.post('http://localhost:5000/api/email-invoice', { ...formData, email: customerEmail });
+        await axios.post('https://meetra-billing-app.onrender.com/api/email-invoice', { ...formData, email: customerEmail });
         alert("✅ Email Sent Successfully!");
     } catch (error) { console.error(error); alert("❌ Error sending email."); }
     setEmailLoading(false);
@@ -97,7 +97,7 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:5000/api/create-invoice', formData, { responseType: 'blob' });
+      const response = await axios.post('https://meetra-billing-app.onrender.com/api/create-invoice', formData, { responseType: 'blob' });
       const file = new File([response.data], `${formData.customInvoiceNo}.pdf`, { type: 'application/pdf' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: 'Invoice', text: `Invoice ${formData.customInvoiceNo}` });
