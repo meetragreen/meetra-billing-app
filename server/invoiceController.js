@@ -51,8 +51,8 @@ exports.getNextInvoiceNumber = async (req, res) => {
     }
 };
 
-// --- HELPER: GENERATE PDF ---
-// --- HELPER: GENERATE PDF (OPTIMIZED FOR SERVER) ---
+
+// --- HELPER: GENERATE PDF (OPTIMIZED FOR SLOW SERVERS) ---
 const generatePDF = async (invoiceData, signatureType) => {
     const logoPath = path.join(__dirname, 'LOGO.png'); 
     let logoBase64 = '';
@@ -70,28 +70,43 @@ const generatePDF = async (invoiceData, signatureType) => {
         }
     }
 
-    // --- MEMORY FIX: Add these arguments ---
+    // --- CRITICAL FIXES FOR RENDER ---
     const browser = await puppeteer.launch({ 
-        headless: 'new', // Use new headless mode
+        headless: 'new',
+        timeout: 60000, // <--- CHANGE: Wait 60 seconds instead of 30
         args: [
             '--no-sandbox', 
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage', // CRITICAL for Docker/Render
+            '--disable-dev-shm-usage', // Memory fix
             '--disable-gpu',
             '--no-first-run',
             '--no-zygote',
-            '--single-process', // Helps with memory
+            '--single-process', 
         ],
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null, // Uses Render's Chrome if available
+        // Ensure we don't accidentally force a wrong path if the env var isn't set perfectly
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined, 
     });
 
-    const page = await browser.newPage();
-    const htmlContent = invoiceTemplate(invoiceData, logoBase64, stampBase64);
-    await page.setContent(htmlContent, { waitUntil: 'domcontentloaded' }); // Faster waiting
-    const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
-    
-    await browser.close();
-    return pdfBuffer;
+    try {
+        const page = await browser.newPage();
+        // Increase timeout for page loading too
+        page.setDefaultNavigationTimeout(60000); 
+
+        const htmlContent = invoiceTemplate(invoiceData, logoBase64, stampBase64);
+        
+        // efficient waiting
+        await page.setContent(htmlContent, { waitUntil: 'networkidle0' }); 
+        
+        const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+        return pdfBuffer;
+
+    } catch (error) {
+        console.error("PDF Generation failed:", error);
+        throw error;
+    } finally {
+        // Always close browser to free up memory
+        if (browser) await browser.close();
+    }
 };
 
 // --- HELPER: CALCULATE DATA (FIXED CRASH HERE) ---
