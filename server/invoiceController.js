@@ -30,19 +30,9 @@ exports.getNextInvoiceNumber = async (req, res) => {
 
         let nextNum = '001';
         if (lastInvoice) {
-            if (type === 'Proforma Invoice') {
-                const parts = lastInvoice.invoiceNo.split('-'); 
-                if(parts[2]) {
-                     const lastSequence = parseInt(parts[2]); 
-                     nextNum = (lastSequence + 1).toString().padStart(3, '0');
-                }
-            } else {
-                const parts = lastInvoice.invoiceNo.split('-');
-                if(parts.length > 1) {
-                    const lastSequence = parseInt(parts[1].slice(2)); 
-                    nextNum = (lastSequence + 1).toString().padStart(3, '0');
-                }
-            }
+            const parts = lastInvoice.invoiceNo.split('-');
+            const seqPart = type === 'Proforma Invoice' ? parts[2] : parts[1].slice(2);
+            if(seqPart) nextNum = (parseInt(seqPart) + 1).toString().padStart(3, '0');
         }
         res.status(200).json({ nextInvoiceNo: `${prefix}${nextNum}` });
     } catch (error) {
@@ -51,8 +41,67 @@ exports.getNextInvoiceNumber = async (req, res) => {
     }
 };
 
+// --- 2. GET ALL INVOICES (HISTORY) ---
+exports.getAllInvoices = async (req, res) => {
+    try {
+        // Fetch all invoices, sorted by newest first
+        const invoices = await Invoice.find().sort({ date: -1 });
+        res.status(200).json(invoices);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching history", error });
+    }
+};
 
-// --- HELPER: GENERATE PDF (Render Free Tier Optimized) ---
+// --- 3. DELETE INVOICE ---
+exports.deleteInvoice = async (req, res) => {
+    try {
+        await Invoice.findByIdAndDelete(req.params.id);
+        res.status(200).json({ message: "Invoice deleted" });
+    } catch (error) {
+        res.status(500).json({ message: "Error deleting invoice", error });
+    }
+};
+
+// --- 4. GET DASHBOARD STATS (GRAPH) ---
+exports.getDashboardStats = async (req, res) => {
+    try {
+        const year = parseInt(req.query.year) || new Date().getFullYear();
+        const startDate = new Date(`${year}-01-01`);
+        const endDate = new Date(`${year}-12-31`);
+
+        // Aggregate total turnover per month
+        const stats = await Invoice.aggregate([
+            {
+                $match: {
+                    date: { $gte: startDate, $lte: endDate },
+                    invoiceType: 'Tax Invoice' // Only count Tax Invoices for turnover
+                }
+            },
+            {
+                $group: {
+                    _id: { $month: "$date" }, // Group by Month (1-12)
+                    total: { $sum: { $toDouble: "$grandTotal" } } // Sum the Grand Total
+                }
+            }
+        ]);
+
+        // Format data for React (Array of 12 months)
+        const monthlyData = Array(12).fill(0).map((_, i) => {
+            const found = stats.find(s => s._id === (i + 1));
+            return {
+                name: new Date(0, i).toLocaleString('default', { month: 'short' }),
+                Turnover: found ? found.total : 0
+            };
+        });
+
+        res.status(200).json(monthlyData);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error stats", error });
+    }
+};
+
+// --- PDF & CALCULATIONS (EXISTING LOGIC) ---
 const generatePDF = async (invoiceData, signatureType) => {
     const logoPath = path.join(__dirname, 'LOGO.png'); 
     let logoBase64 = '';
@@ -70,44 +119,18 @@ const generatePDF = async (invoiceData, signatureType) => {
         }
     }
 
-    // --- LAUNCH OPTIONS FOR LOW MEMORY/CPU ---
     const browser = await puppeteer.launch({ 
         headless: 'new',
-        args: [
-            '--no-sandbox', 
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process', 
-            '--disable-extensions'
-        ],
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--no-first-run', '--single-process'],
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined, 
     });
 
     try {
         const page = await browser.newPage();
-        
-        // 1. Set HTML content
         const htmlContent = invoiceTemplate(invoiceData, logoBase64, stampBase64);
-        
-        // 2. OPTIMIZATION: Wait only for DOM to load, NOT network idle
-        // 'domcontentloaded' is much faster and prevents timeouts on static content
-        await page.setContent(htmlContent, { 
-            waitUntil: 'domcontentloaded', 
-            timeout: 60000 
-        }); 
-        
-        // 3. Generate PDF
-        const pdfBuffer = await page.pdf({ 
-            format: 'A4', 
-            printBackground: true,
-            timeout: 60000 // Give it time to print
-        });
-        
+        await page.setContent(htmlContent, { waitUntil: 'domcontentloaded', timeout: 60000 }); 
+        const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, timeout: 60000 });
         return pdfBuffer;
-
     } catch (error) {
         console.error("PDF Generation failed:", error);
         throw error;
@@ -116,13 +139,11 @@ const generatePDF = async (invoiceData, signatureType) => {
     }
 };
 
-// --- HELPER: CALCULATE DATA (FIXED CRASH HERE) ---
 const calculateInvoice = async (reqBody) => {
     const { buyer, items, invoiceType, customInvoiceNo } = reqBody;
     let totalTaxable = 0, totalCGST = 0, totalSGST = 0, taxBreakdown = {};
 
     const calculatedItems = items.map(item => {
-        // SAFETY FIX: Convert empty string to 0
         const quantity = parseFloat(item.quantity) || 0; 
         const rate = parseFloat(item.rate) || 0;
         const taxRate = parseFloat(item.taxRate) || 0;
@@ -140,7 +161,6 @@ const calculateInvoice = async (reqBody) => {
         taxBreakdown[item.hsn].cgstAmount += cVal;
         taxBreakdown[item.hsn].sgstAmount += sVal;
 
-        // Return item with NUMBER values to prevent DB crash
         return { ...item, quantity, rate, amount: amount.toFixed(2) };
     });
 
@@ -164,7 +184,6 @@ const calculateInvoice = async (reqBody) => {
     });
 };
 
-// --- CONTROLLER: CREATE PDF ---
 exports.createInvoice = async (req, res) => {
     try {
         const { signatureType } = req.body; 
@@ -176,7 +195,6 @@ exports.createInvoice = async (req, res) => {
     } catch (error) { console.log("Error:", error); res.status(500).json({ message: 'Error', error }); }
 };
 
-// --- CONTROLLER: EMAIL ---
 exports.emailInvoice = async (req, res) => {
     try {
         const { email, signatureType } = req.body;

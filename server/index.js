@@ -20,6 +20,9 @@ app.get('/', (req, res) => res.send('Server Running'));
 app.post('/api/create-invoice', invoiceController.createInvoice);
 app.post('/api/email-invoice', invoiceController.emailInvoice);
 app.get('/api/next-invoice-number', invoiceController.getNextInvoiceNumber); // <--- NEW ROUTE
+app.get('/api/invoices', invoiceController.getAllInvoices);       // Get History
+app.delete('/api/invoices/:id', invoiceController.deleteInvoice); // Delete Invoice
+app.get('/api/dashboard', invoiceController.getDashboardStats);   // Get Graph Data
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
