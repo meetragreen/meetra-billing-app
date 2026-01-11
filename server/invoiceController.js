@@ -202,8 +202,13 @@ exports.emailInvoice = async (req, res) => {
         const pdfBuffer = await generatePDF(newInvoice, signatureType);
 
         const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: { user: 'meetragreen@gmail.com', pass: 'icsd aiya rvkk rqrn' }
+            host: "smtp.gmail.com", // Explicit host
+            port: 465,              // Use SSL Port
+            secure: true,           // Must be true for port 465
+            auth: { 
+                user: 'meetragreen@gmail.com', 
+                pass: 'icsd aiya rvkk rqrn' 
+            }
         });
 
         const mailOptions = {
