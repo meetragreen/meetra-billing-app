@@ -31,8 +31,11 @@ exports.getNextInvoiceNumber = async (req, res) => {
         let nextNum = '001';
         if (lastInvoice) {
             const parts = lastInvoice.invoiceNo.split('-');
-            const seqPart = type === 'Proforma Invoice' ? parts[2] : parts[1].slice(2);
-            if(seqPart) nextNum = (parseInt(seqPart) + 1).toString().padStart(3, '0');
+            if (type === 'Proforma Invoice') {
+                 if(parts[2]) nextNum = (parseInt(parts[2]) + 1).toString().padStart(3, '0');
+            } else {
+                 if(parts[1]) nextNum = (parseInt(parts[1].slice(2)) + 1).toString().padStart(3, '0');
+            }
         }
         res.status(200).json({ nextInvoiceNo: `${prefix}${nextNum}` });
     } catch (error) {
@@ -44,7 +47,6 @@ exports.getNextInvoiceNumber = async (req, res) => {
 // --- 2. GET ALL INVOICES (HISTORY) ---
 exports.getAllInvoices = async (req, res) => {
     try {
-        // Fetch all invoices, sorted by newest first
         const invoices = await Invoice.find().sort({ date: -1 });
         res.status(200).json(invoices);
     } catch (error) {
@@ -69,23 +71,21 @@ exports.getDashboardStats = async (req, res) => {
         const startDate = new Date(`${year}-01-01`);
         const endDate = new Date(`${year}-12-31`);
 
-        // Aggregate total turnover per month
         const stats = await Invoice.aggregate([
             {
                 $match: {
                     date: { $gte: startDate, $lte: endDate },
-                    invoiceType: 'Tax Invoice' // Only count Tax Invoices for turnover
+                    invoiceType: 'Tax Invoice' 
                 }
             },
             {
                 $group: {
-                    _id: { $month: "$date" }, // Group by Month (1-12)
-                    total: { $sum: { $toDouble: "$grandTotal" } } // Sum the Grand Total
+                    _id: { $month: "$date" }, 
+                    total: { $sum: { $toDouble: "$grandTotal" } } 
                 }
             }
         ]);
 
-        // Format data for React (Array of 12 months)
         const monthlyData = Array(12).fill(0).map((_, i) => {
             const found = stats.find(s => s._id === (i + 1));
             return {
@@ -101,7 +101,7 @@ exports.getDashboardStats = async (req, res) => {
     }
 };
 
-// --- PDF & CALCULATIONS (EXISTING LOGIC) ---
+// --- PDF GENERATOR (OPTIMIZED FOR RENDER) ---
 const generatePDF = async (invoiceData, signatureType) => {
     const logoPath = path.join(__dirname, 'LOGO.png'); 
     let logoBase64 = '';
@@ -121,7 +121,16 @@ const generatePDF = async (invoiceData, signatureType) => {
 
     const browser = await puppeteer.launch({ 
         headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--no-first-run', '--single-process'],
+        args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process', 
+            '--disable-extensions'
+        ],
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined, 
     });
 
@@ -139,6 +148,7 @@ const generatePDF = async (invoiceData, signatureType) => {
     }
 };
 
+// --- CALCULATION LOGIC ---
 const calculateInvoice = async (reqBody) => {
     const { buyer, items, invoiceType, customInvoiceNo } = reqBody;
     let totalTaxable = 0, totalCGST = 0, totalSGST = 0, taxBreakdown = {};
@@ -184,6 +194,7 @@ const calculateInvoice = async (reqBody) => {
     });
 };
 
+// --- CONTROLLER ACTIONS ---
 exports.createInvoice = async (req, res) => {
     try {
         const { signatureType } = req.body; 
@@ -195,16 +206,18 @@ exports.createInvoice = async (req, res) => {
     } catch (error) { console.log("Error:", error); res.status(500).json({ message: 'Error', error }); }
 };
 
+// --- EMAIL FUNCTION (FIXED FOR RENDER: PORT 465) ---
 exports.emailInvoice = async (req, res) => {
     try {
         const { email, signatureType } = req.body;
         const newInvoice = await calculateInvoice(req.body); 
         const pdfBuffer = await generatePDF(newInvoice, signatureType);
 
+        // ✅ FIXED EMAIL SETTINGS
         const transporter = nodemailer.createTransport({
-            host: "smtp.gmail.com", // Explicit host
-            port: 465,              // Use SSL Port
-            secure: true,           // Must be true for port 465
+            host: "smtp.gmail.com", 
+            port: 465,              
+            secure: true,           
             auth: { 
                 user: 'meetragreen@gmail.com', 
                 pass: 'icsd aiya rvkk rqrn' 
