@@ -52,7 +52,7 @@ exports.getNextInvoiceNumber = async (req, res) => {
 };
 
 
-// --- HELPER: GENERATE PDF (OPTIMIZED FOR SLOW SERVERS) ---
+// --- HELPER: GENERATE PDF (Render Free Tier Optimized) ---
 const generatePDF = async (invoiceData, signatureType) => {
     const logoPath = path.join(__dirname, 'LOGO.png'); 
     let logoBase64 = '';
@@ -70,41 +70,48 @@ const generatePDF = async (invoiceData, signatureType) => {
         }
     }
 
-    // --- CRITICAL FIXES FOR RENDER ---
+    // --- LAUNCH OPTIONS FOR LOW MEMORY/CPU ---
     const browser = await puppeteer.launch({ 
         headless: 'new',
-        timeout: 60000, // <--- CHANGE: Wait 60 seconds instead of 30
         args: [
             '--no-sandbox', 
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage', // Memory fix
+            '--disable-dev-shm-usage',
             '--disable-gpu',
             '--no-first-run',
             '--no-zygote',
             '--single-process', 
+            '--disable-extensions'
         ],
-        // Ensure we don't accidentally force a wrong path if the env var isn't set perfectly
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined, 
     });
 
     try {
         const page = await browser.newPage();
-        // Increase timeout for page loading too
-        page.setDefaultNavigationTimeout(60000); 
-
+        
+        // 1. Set HTML content
         const htmlContent = invoiceTemplate(invoiceData, logoBase64, stampBase64);
         
-        // efficient waiting
-        await page.setContent(htmlContent, { waitUntil: 'networkidle0' }); 
+        // 2. OPTIMIZATION: Wait only for DOM to load, NOT network idle
+        // 'domcontentloaded' is much faster and prevents timeouts on static content
+        await page.setContent(htmlContent, { 
+            waitUntil: 'domcontentloaded', 
+            timeout: 60000 
+        }); 
         
-        const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+        // 3. Generate PDF
+        const pdfBuffer = await page.pdf({ 
+            format: 'A4', 
+            printBackground: true,
+            timeout: 60000 // Give it time to print
+        });
+        
         return pdfBuffer;
 
     } catch (error) {
         console.error("PDF Generation failed:", error);
         throw error;
     } finally {
-        // Always close browser to free up memory
         if (browser) await browser.close();
     }
 };
