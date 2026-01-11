@@ -52,6 +52,7 @@ exports.getNextInvoiceNumber = async (req, res) => {
 };
 
 // --- HELPER: GENERATE PDF ---
+// --- HELPER: GENERATE PDF (OPTIMIZED FOR SERVER) ---
 const generatePDF = async (invoiceData, signatureType) => {
     const logoPath = path.join(__dirname, 'LOGO.png'); 
     let logoBase64 = '';
@@ -69,11 +70,26 @@ const generatePDF = async (invoiceData, signatureType) => {
         }
     }
 
-    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+    // --- MEMORY FIX: Add these arguments ---
+    const browser = await puppeteer.launch({ 
+        headless: 'new', // Use new headless mode
+        args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage', // CRITICAL for Docker/Render
+            '--disable-gpu',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process', // Helps with memory
+        ],
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null, // Uses Render's Chrome if available
+    });
+
     const page = await browser.newPage();
     const htmlContent = invoiceTemplate(invoiceData, logoBase64, stampBase64);
-    await page.setContent(htmlContent);
+    await page.setContent(htmlContent, { waitUntil: 'domcontentloaded' }); // Faster waiting
     const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+    
     await browser.close();
     return pdfBuffer;
 };
