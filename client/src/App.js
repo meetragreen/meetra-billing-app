@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './App.css';
@@ -47,8 +47,8 @@ function InvoiceForm() {
         customInvoiceNo: '',
         buyer: { name: '', address: '', gstin: '', phone: '' },
         items: [
-            { description: 'SUPPLY OF SOLAR ROOFTOP SYSTEM', hsn: '85414011', quantity: '', unit: 'KW', rate: '', taxRate: '5' },
-            { description: 'INSTALLATION & COMMISSIONING OF SOLAR SYSTEM', hsn: '995461', quantity: '', unit: 'KW', rate: '', taxRate: '18' }
+            { description: 'SOLAR ROOFTOP ONGRID POWER GENERATING SYSTEM', hsn: '854143', quantity: '', unit: 'KW', rate: '', taxRate: '5' },
+            { description: 'SOLAR INSTALLTION CHARGES', hsn: '995461', quantity: '', unit: 'KW', rate: '', taxRate: '18' }
         ]
     });
     const [loading, setLoading] = useState(false);
@@ -108,7 +108,6 @@ function InvoiceForm() {
         setEmailLoading(false);
     };
 
-    // --- FIXED WHATSAPP SHARE LOGIC ---
     const handleShare = async () => {
         if (!validateForm()) return;
     
@@ -117,13 +116,10 @@ function InvoiceForm() {
           const response = await axios.post(`${API_URL}/api/create-invoice`, formData, { responseType: 'blob' });
           const file = new File([response.data], `${formData.customInvoiceNo}.pdf`, { type: 'application/pdf' });
     
-          // 1. Try Mobile Native Share (Works on Phones)
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({ files: [file], title: 'Invoice', text: `Invoice ${formData.customInvoiceNo}` });
           } 
-          // 2. Fallback for Desktop (PC/Laptop)
           else {
-            // A. Download the file
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -131,7 +127,6 @@ function InvoiceForm() {
             document.body.appendChild(link);
             link.click();
     
-            // B. Open WhatsApp Web & Alert User
             if (formData.buyer.phone) {
                 window.open(`https://web.whatsapp.com/send?phone=91${formData.buyer.phone}&text=Please find attached invoice ${formData.customInvoiceNo}`, '_blank');
                 alert("⚠️ ON DESKTOP: WhatsApp cannot auto-attach files.\n\n1. The PDF has been downloaded.\n2. WhatsApp Web will open now.\n3. Please drag and drop the PDF into the chat.");
@@ -211,34 +206,33 @@ function InvoiceForm() {
     );
 }
 
-// --- COMPONENT 2: DASHBOARD (Graph & History) ---
+// --- COMPONENT 2: DASHBOARD (FIXED USECALLBACK) ---
 function Dashboard() {
     const [stats, setStats] = useState([]);
     const [invoices, setInvoices] = useState([]);
     const [year, setYear] = useState(new Date().getFullYear());
 
-    useEffect(() => {
-        fetchData();
-    }, [year]);
-
-    const fetchData = () => {
-        // 1. Get Graph Data
+    // ✅ FIXED: Wrapped in useCallback to satisfy Vercel Linter
+    const fetchData = useCallback(() => {
         axios.get(`${API_URL}/api/dashboard?year=${year}`)
             .then(res => setStats(res.data))
             .catch(err => console.error(err));
         
-        // 2. Get All Invoices
         axios.get(`${API_URL}/api/invoices`)
             .then(res => setInvoices(res.data))
             .catch(err => console.error(err));
-    };
+    }, [year]); // Dependencies added
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]); // Dependency added
 
     const handleDelete = (id) => {
         if(!window.confirm("Are you sure you want to delete this invoice?")) return;
         axios.delete(`${API_URL}/api/invoices/${id}`)
             .then(() => {
                 alert("Deleted!");
-                fetchData(); // Refresh list
+                fetchData(); 
             })
             .catch(err => console.error(err));
     };
@@ -307,7 +301,6 @@ function Dashboard() {
     );
 }
 
-// --- STYLES ---
 const styles = {
     container: { fontFamily: '"Segoe UI", Roboto, sans-serif', backgroundColor: '#f4f7f6', minHeight: '100vh', padding: '40px 20px', boxSizing: 'border-box' },
     header: { textAlign: 'center', marginBottom: '40px' },
@@ -315,7 +308,6 @@ const styles = {
     tabContainer: { display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '30px' },
     tab: { padding: '10px 20px', border: 'none', background: '#ecf0f1', color: '#333', borderRadius: '8px', cursor: 'pointer', fontSize: '1rem', fontWeight: '600' },
     activeTab: { padding: '10px 20px', border: 'none', background: '#2980b9', color: 'white', borderRadius: '8px', cursor: 'pointer', fontSize: '1rem', fontWeight: '600' },
-    
     card: { backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', padding: '30px', marginBottom: '30px', maxWidth: '1000px', margin: '0 auto 30px auto', width: '100%', boxSizing: 'border-box' },
     cardHeader: { borderBottom: '2px solid #ecf0f1', paddingBottom: '15px', marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '10px' },
     cardTitle: { fontSize: '1.25rem', color: '#34495e', fontWeight: '600', margin: 0 },
@@ -334,6 +326,6 @@ const styles = {
     btnDanger: { backgroundColor: '#e74c3c', width: '40px', height: '40px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', padding: 0, color: 'white', border: 'none', cursor: 'pointer' }, 
     btnAdd: { backgroundColor: '#f39c12', marginTop: '20px' },
     buttonContainer: { display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '40px' }
-  };
+};
 
 export default App;
