@@ -39,7 +39,7 @@ function App() {
   );
 }
 
-// --- COMPONENT 1: INVOICE FORM (Your Existing Tool) ---
+// --- COMPONENT 1: INVOICE FORM ---
 function InvoiceForm() {
     const [formData, setFormData] = useState({
         invoiceType: 'Tax Invoice',
@@ -47,8 +47,8 @@ function InvoiceForm() {
         customInvoiceNo: '',
         buyer: { name: '', address: '', gstin: '', phone: '' },
         items: [
-            { description: 'SOLAR ROOFTOP ONGRID POWER GENERATING SYSTEM', hsn: '854143', quantity: '', unit: 'KW', rate: '', taxRate: '5' },
-            { description: 'SOLAR INSTALLTION CHARGES', hsn: '995461', quantity: '', unit: 'KW', rate: '', taxRate: '18' }
+            { description: 'SUPPLY OF SOLAR ROOFTOP SYSTEM', hsn: '85414011', quantity: '', unit: 'KW', rate: '', taxRate: '5' },
+            { description: 'INSTALLATION & COMMISSIONING OF SOLAR SYSTEM', hsn: '995461', quantity: '', unit: 'KW', rate: '', taxRate: '18' }
         ]
     });
     const [loading, setLoading] = useState(false);
@@ -108,24 +108,38 @@ function InvoiceForm() {
         setEmailLoading(false);
     };
 
+    // --- FIXED WHATSAPP SHARE LOGIC ---
     const handleShare = async () => {
         if (!validateForm()) return;
+    
         setLoading(true);
         try {
-            const response = await axios.post(`${API_URL}/api/create-invoice`, formData, { responseType: 'blob' });
-            const file = new File([response.data], `${formData.customInvoiceNo}.pdf`, { type: 'application/pdf' });
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({ files: [file], title: 'Invoice', text: `Invoice ${formData.customInvoiceNo}` });
+          const response = await axios.post(`${API_URL}/api/create-invoice`, formData, { responseType: 'blob' });
+          const file = new File([response.data], `${formData.customInvoiceNo}.pdf`, { type: 'application/pdf' });
+    
+          // 1. Try Mobile Native Share (Works on Phones)
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: 'Invoice', text: `Invoice ${formData.customInvoiceNo}` });
+          } 
+          // 2. Fallback for Desktop (PC/Laptop)
+          else {
+            // A. Download the file
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${formData.customInvoiceNo}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+    
+            // B. Open WhatsApp Web & Alert User
+            if (formData.buyer.phone) {
+                window.open(`https://web.whatsapp.com/send?phone=91${formData.buyer.phone}&text=Please find attached invoice ${formData.customInvoiceNo}`, '_blank');
+                alert("⚠️ ON DESKTOP: WhatsApp cannot auto-attach files.\n\n1. The PDF has been downloaded.\n2. WhatsApp Web will open now.\n3. Please drag and drop the PDF into the chat.");
             } else {
-                const url = window.URL.createObjectURL(new Blob([response.data]));
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', `${formData.customInvoiceNo}.pdf`);
-                document.body.appendChild(link);
-                link.click();
-                if (formData.buyer.phone) window.open(`https://wa.me/91${formData.buyer.phone}`, '_blank');
+                 alert("⚠️ PDF Downloaded.\n\nTo share on WhatsApp Desktop, please open WhatsApp manually and attach the downloaded file.");
             }
-        } catch (error) { console.error(error); }
+          }
+        } catch (error) { console.error(error); alert("Share failed or was canceled."); }
         setLoading(false);
     };
 
