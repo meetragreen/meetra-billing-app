@@ -47,8 +47,8 @@ function InvoiceForm() {
         customInvoiceNo: '',
         buyer: { name: '', address: '', gstin: '', phone: '' },
         items: [
-            { description: 'SOLAR ROOFTOP ONGRID POWER GENERATING SYSTEM', hsn: '854143', quantity: '', unit: 'KW', rate: '', taxRate: '5' },
-            { description: 'SOLAR INSTALLTION CHARGES', hsn: '995461', quantity: '', unit: 'KW', rate: '', taxRate: '18' }
+            { description: 'SUPPLY OF ROOFTOP SOLAR SYSTEM', hsn: '85414011', quantity: '', unit: 'KW', rate: '', taxRate: '5' },
+            { description: 'INSTALLTION & COMMISSIONING OF SOLAR', hsn: '995461', quantity: '', unit: 'KW', rate: '', taxRate: '18' }
         ]
     });
     const [loading, setLoading] = useState(false);
