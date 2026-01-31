@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './App.css';
@@ -186,12 +186,13 @@ function Dashboard() {
     const [invoices, setInvoices] = useState([]);
     const [year, setYear] = useState(new Date().getFullYear());
 
-    const fetchData = useCallback(() => {
+    const fetchData = () => {
         axios.get(`${API_URL}/api/dashboard?year=${year}`).then(res => setStats(res.data)).catch(err => console.error(err));
         axios.get(`${API_URL}/api/invoices`).then(res => setInvoices(res.data)).catch(err => console.error(err));
-    }, [year]);
+    };
 
-    useEffect(() => { fetchData(); }, [fetchData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => { fetchData(); }, [year]);
 
     const handleDelete = (id) => {
         if(!window.confirm("Are you sure you want to delete this invoice?")) return;
