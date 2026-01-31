@@ -5,10 +5,9 @@ import './App.css';
 
 // --- API CONFIG ---
 const API_URL = 'https://meetra-billing-app.onrender.com'; 
-// const API_URL = 'http://localhost:5000'; // Uncomment for local testing
 
 function App() {
-  const [activeTab, setActiveTab] = useState('create'); // 'create' or 'dashboard'
+  const [activeTab, setActiveTab] = useState('create'); 
 
   return (
     <div style={styles.container}>
@@ -17,39 +16,21 @@ function App() {
         <p>Professional Invoicing Suite</p>
       </div>
 
-      {/* TAB NAVIGATION */}
       <div style={styles.tabContainer}>
-        <button 
-            onClick={() => setActiveTab('create')} 
-            style={activeTab === 'create' ? styles.activeTab : styles.tab}
-        >
-            📄 New Invoice
-        </button>
-        <button 
-            onClick={() => setActiveTab('dashboard')} 
-            style={activeTab === 'dashboard' ? styles.activeTab : styles.tab}
-        >
-            📊 Dashboard & History
-        </button>
+        <button onClick={() => setActiveTab('create')} style={activeTab === 'create' ? styles.activeTab : styles.tab}>📄 New Invoice</button>
+        <button onClick={() => setActiveTab('dashboard')} style={activeTab === 'dashboard' ? styles.activeTab : styles.tab}>📊 Dashboard & History</button>
       </div>
 
-      {/* RENDER CONTENT BASED ON TAB */}
       {activeTab === 'create' ? <InvoiceForm /> : <Dashboard />}
     </div>
   );
 }
 
-// --- COMPONENT 1: INVOICE FORM ---
 function InvoiceForm() {
     const [formData, setFormData] = useState({
-        invoiceType: 'Tax Invoice',
-        signatureType: 'Physical', 
-        customInvoiceNo: '',
+        invoiceType: 'Tax Invoice', signatureType: 'Physical', customInvoiceNo: '',
         buyer: { name: '', address: '', gstin: '', phone: '' },
-        items: [
-            { description: 'SUPPLY OF ROOFTOP SOLAR SYSTEM', hsn: '85414011', quantity: '', unit: 'KW', rate: '', taxRate: '5' },
-            { description: 'INSTALLTION & COMMISSIONING OF SOLAR', hsn: '995461', quantity: '', unit: 'KW', rate: '', taxRate: '18' }
-        ]
+        items: [{ description: 'SUPPLY OF ROOFTOP SOLAR SYSTEM', hsn: '85414011', quantity: '', unit: 'KW', rate: '', taxRate: '5' }, { description: 'INSTALLTION & COMMISSIONING OF SOLAR', hsn: '995461', quantity: '', unit: 'KW', rate: '', taxRate: '18' }]
     });
     const [loading, setLoading] = useState(false);
     const [emailLoading, setEmailLoading] = useState(false);
@@ -110,29 +91,23 @@ function InvoiceForm() {
 
     const handleShare = async () => {
         if (!validateForm()) return;
-    
         setLoading(true);
         try {
           const response = await axios.post(`${API_URL}/api/create-invoice`, formData, { responseType: 'blob' });
           const file = new File([response.data], `${formData.customInvoiceNo}.pdf`, { type: 'application/pdf' });
-    
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({ files: [file], title: 'Invoice', text: `Invoice ${formData.customInvoiceNo}` });
-          } 
-          else {
+          } else {
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', `${formData.customInvoiceNo}.pdf`);
             document.body.appendChild(link);
             link.click();
-    
             if (formData.buyer.phone) {
                 window.open(`https://web.whatsapp.com/send?phone=91${formData.buyer.phone}&text=Please find attached invoice ${formData.customInvoiceNo}`, '_blank');
                 alert("⚠️ ON DESKTOP: WhatsApp cannot auto-attach files.\n\n1. The PDF has been downloaded.\n2. WhatsApp Web will open now.\n3. Please drag and drop the PDF into the chat.");
-            } else {
-                 alert("⚠️ PDF Downloaded.\n\nTo share on WhatsApp Desktop, please open WhatsApp manually and attach the downloaded file.");
-            }
+            } else { alert("⚠️ PDF Downloaded.\n\nTo share on WhatsApp Desktop, please open WhatsApp manually and attach the downloaded file."); }
           }
         } catch (error) { console.error(error); alert("Share failed or was canceled."); }
         setLoading(false);
@@ -206,77 +181,45 @@ function InvoiceForm() {
     );
 }
 
-// --- COMPONENT 2: DASHBOARD (FIXED USECALLBACK) ---
 function Dashboard() {
     const [stats, setStats] = useState([]);
     const [invoices, setInvoices] = useState([]);
     const [year, setYear] = useState(new Date().getFullYear());
 
-    // ✅ FIXED: Wrapped in useCallback to satisfy Vercel Linter
     const fetchData = useCallback(() => {
-        axios.get(`${API_URL}/api/dashboard?year=${year}`)
-            .then(res => setStats(res.data))
-            .catch(err => console.error(err));
-        
-        axios.get(`${API_URL}/api/invoices`)
-            .then(res => setInvoices(res.data))
-            .catch(err => console.error(err));
-    }, [year]); // Dependencies added
+        axios.get(`${API_URL}/api/dashboard?year=${year}`).then(res => setStats(res.data)).catch(err => console.error(err));
+        axios.get(`${API_URL}/api/invoices`).then(res => setInvoices(res.data)).catch(err => console.error(err));
+    }, [year]);
 
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]); // Dependency added
+    useEffect(() => { fetchData(); }, [fetchData]);
 
     const handleDelete = (id) => {
         if(!window.confirm("Are you sure you want to delete this invoice?")) return;
         axios.delete(`${API_URL}/api/invoices/${id}`)
-            .then(() => {
-                alert("Deleted!");
-                fetchData(); 
-            })
+            .then(() => { alert("Deleted!"); fetchData(); })
             .catch(err => console.error(err));
     };
 
     return (
         <div style={{padding: '0 10px'}}>
-            {/* GRAPH SECTION */}
             <div style={styles.card}>
                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
                     <h2 style={styles.cardTitle}>📈 Turnover Analysis ({year})</h2>
-                    <select style={styles.input} value={year} onChange={(e) => setYear(e.target.value)}>
-                        <option value="2024">2024</option>
-                        <option value="2025">2025</option>
-                        <option value="2026">2026</option>
-                    </select>
+                    <select style={styles.input} value={year} onChange={(e) => setYear(e.target.value)}><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option></select>
                 </div>
                 <div style={{ width: '100%', height: 300 }}>
                     <ResponsiveContainer>
-                        <BarChart data={stats}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Bar dataKey="Turnover" fill="#27ae60" />
-                        </BarChart>
+                        <BarChart data={stats}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip /><Legend /><Bar dataKey="Turnover" fill="#27ae60" /></BarChart>
                     </ResponsiveContainer>
                 </div>
             </div>
-
-            {/* TABLE SECTION */}
             <div style={styles.card}>
                 <h2 style={{...styles.cardTitle, marginBottom:'20px'}}>📜 Invoice History</h2>
                 <div style={{overflowX: 'auto'}}>
                     <table style={{width: '100%', borderCollapse: 'collapse', minWidth: '600px'}}>
                         <thead>
                             <tr style={{backgroundColor: '#f8f9fa', borderBottom: '2px solid #ddd', textAlign: 'left'}}>
-                                <th style={{padding: '12px'}}>Date</th>
-                                <th style={{padding: '12px'}}>Invoice No</th>
-                                <th style={{padding: '12px'}}>Customer</th>
-                                <th style={{padding: '12px'}}>GSTIN</th>
-                                <th style={{padding: '12px'}}>Tax (GST)</th>
-                                <th style={{padding: '12px'}}>Total Amount</th>
-                                <th style={{padding: '12px'}}>Action</th>
+                                <th style={{padding: '12px'}}>Date</th><th style={{padding: '12px'}}>Invoice No</th><th style={{padding: '12px'}}>Customer</th><th style={{padding: '12px'}}>GSTIN</th><th style={{padding: '12px'}}>Tax (GST)</th><th style={{padding: '12px'}}>Total Amount</th><th style={{padding: '12px'}}>Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -288,9 +231,7 @@ function Dashboard() {
                                     <td style={{padding: '12px'}}>{inv.buyer.gstin || '-'}</td>
                                     <td style={{padding: '12px'}}>₹ {(parseFloat(inv.totalCGST) + parseFloat(inv.totalSGST)).toFixed(2)}</td>
                                     <td style={{padding: '12px', fontWeight:'bold'}}>₹ {inv.grandTotal}</td>
-                                    <td style={{padding: '12px'}}>
-                                        <button onClick={() => handleDelete(inv._id)} style={{...styles.btnDanger, width:'auto', padding:'5px 10px', fontSize:'0.9rem'}}>Delete</button>
-                                    </td>
+                                    <td style={{padding: '12px'}}><button onClick={() => handleDelete(inv._id)} style={{...styles.btnDanger, width:'auto', padding:'5px 10px', fontSize:'0.9rem'}}>Delete</button></td>
                                 </tr>
                             ))}
                         </tbody>

@@ -101,7 +101,7 @@ exports.getDashboardStats = async (req, res) => {
     }
 };
 
-// --- PDF GENERATOR (OPTIMIZED FOR RENDER) ---
+// --- PDF GENERATOR ---
 const generatePDF = async (invoiceData, signatureType) => {
     const logoPath = path.join(__dirname, 'LOGO.png'); 
     let logoBase64 = '';
@@ -121,16 +121,7 @@ const generatePDF = async (invoiceData, signatureType) => {
 
     const browser = await puppeteer.launch({ 
         headless: 'new',
-        args: [
-            '--no-sandbox', 
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process', 
-            '--disable-extensions'
-        ],
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--no-first-run', '--no-zygote', '--single-process', '--disable-extensions'],
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined, 
     });
 
@@ -148,7 +139,6 @@ const generatePDF = async (invoiceData, signatureType) => {
     }
 };
 
-// --- CALCULATION LOGIC ---
 const calculateInvoice = async (reqBody) => {
     const { buyer, items, invoiceType, customInvoiceNo } = reqBody;
     let totalTaxable = 0, totalCGST = 0, totalSGST = 0, taxBreakdown = {};
@@ -157,11 +147,9 @@ const calculateInvoice = async (reqBody) => {
         const quantity = parseFloat(item.quantity) || 0; 
         const rate = parseFloat(item.rate) || 0;
         const taxRate = parseFloat(item.taxRate) || 0;
-        
         const amount = quantity * rate;
         const cVal = amount * ((taxRate / 2) / 100);
         const sVal = amount * ((taxRate / 2) / 100);
-
         totalTaxable += amount;
         totalCGST += cVal;
         totalSGST += sVal;
@@ -194,7 +182,6 @@ const calculateInvoice = async (reqBody) => {
     });
 };
 
-// --- CONTROLLER ACTIONS ---
 exports.createInvoice = async (req, res) => {
     try {
         const { signatureType } = req.body; 
@@ -206,18 +193,17 @@ exports.createInvoice = async (req, res) => {
     } catch (error) { console.log("Error:", error); res.status(500).json({ message: 'Error', error }); }
 };
 
-// --- EMAIL FUNCTION (FIXED FOR RENDER: PORT 465) ---
+// --- EMAIL FIXED FOR RENDER (PORT 465) ---
 exports.emailInvoice = async (req, res) => {
     try {
         const { email, signatureType } = req.body;
         const newInvoice = await calculateInvoice(req.body); 
         const pdfBuffer = await generatePDF(newInvoice, signatureType);
 
-        // ✅ FIXED EMAIL SETTINGS
         const transporter = nodemailer.createTransport({
             host: "smtp.gmail.com", 
-            port: 465,              
-            secure: true,           
+            port: 465,       // SSL Port for Render
+            secure: true,    // Required for 465
             auth: { 
                 user: 'meetragreen@gmail.com', 
                 pass: 'icsd aiya rvkk rqrn' 
