@@ -82,15 +82,11 @@ function InvoiceForm() {
         setEmailLoading(false);
     };
 
-    // --- SIMPLIFIED WHATSAPP LOGIC (Fixes NotAllowedError) ---
     const handleShare = async () => {
         if (!validateForm()) return;
         setLoading(true);
         try {
-            // 1. Download PDF immediately
             await handleDownload();
-            
-            // 2. Open WhatsApp Web
             if (formData.buyer.phone) {
                 const waUrl = `https://web.whatsapp.com/send?phone=91${formData.buyer.phone}&text=Please find attached invoice ${formData.customInvoiceNo}`;
                 window.open(waUrl, '_blank');
@@ -168,13 +164,16 @@ function Dashboard() {
     const [invoices, setInvoices] = useState([]);
     const [year, setYear] = useState(new Date().getFullYear());
 
+    // ✅ FIXED: Correct dependency array for Vercel
     const fetchData = useCallback(() => {
         axios.get(`${API_URL}/api/dashboard?year=${year}`).then(res => setStats(res.data)).catch(err => console.error(err));
         axios.get(`${API_URL}/api/invoices`).then(res => setInvoices(res.data)).catch(err => console.error(err));
     }, [year]);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => { fetchData(); }, [year]);
+    // ✅ FIXED: Included fetchData in dependency
+    useEffect(() => { 
+        fetchData(); 
+    }, [fetchData]);
 
     const handleDelete = (id) => {
         if(!window.confirm("Delete?")) return;
