@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import './App.css';
 
 // --- API CONFIG ---
-const API_URL = 'https://meetra-billing-app.onrender.com'; 
+const API_URL = 'https://meetra-billing-app-y223.onrender.com'; 
 // const API_URL = 'http://localhost:5000'; // Uncomment for local testing
 
 function App() {
