@@ -135,10 +135,10 @@ return `
                 <div><span class="bold">Total In Words:</span></div>
                 <div style="margin-bottom: 10px; font-style: italic;">${data.amountInWords} Only</div>
                 <div class="bold" style="border-bottom: 1px solid #ccc; margin-bottom: 5px;">Bank Details</div>
-                <div>Bank: HDFC BANK</div>
-                <div>IFSC: HDFC0001234</div>
-                <div>A/C No: 50200012345678</div>
-                <div>Branch: JETPUR</div>
+                <div>Bank: BANK OF BARODA</div>
+                <div>IFSC: BARB0VJJETP </div>
+                <div>A/C No: 80400200003267 </div>
+                <div>Branch: STAND CHOWK, JETPUR</div>
                 <div class="bold" style="margin-top: 15px; border-bottom: 1px solid #ccc;">Terms & Conditions</div>
                 <div class="small-text">1. Goods once sold will not be taken back.<br>2. Interest @18% per annum will be charged on over due amount.<br>3. Subject to Jetpur Jurisdiction only.</div>
             </div>
