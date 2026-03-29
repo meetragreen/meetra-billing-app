@@ -182,15 +182,7 @@ function InvoiceForm() {
                     </div>
                 </div>
                
-                {/* --- LIVE SUMMARY BOX --- */}
-            <div style={styles.summaryCard}>
-                <h3 style={{marginTop: 0, color: '#2c3e50'}}>📊 Live Bill Summary</h3>
-                <div style={styles.summaryRow}><span>Taxable Amount:</span> <span>₹ {formatInr(totals.taxable)}</span></div>
-                <div style={styles.summaryRow}><span>CGST:</span> <span>₹ {formatInr(totals.cgst)}</span></div>
-                <div style={styles.summaryRow}><span>SGST:</span> <span>₹ {formatInr(totals.sgst)}</span></div>
-                <div style={styles.summaryRow}><span>Round Off:</span> <span>₹ {totals.roundOff.toFixed(2)}</span></div>
-                <div style={styles.summaryTotal}><span>Grand Total:</span> <span>₹ {formatInr(totals.grandTotal)}</span></div>
-            </div>
+               
                 <div style={{...styles.gridTwo, marginTop: '20px'}}>
                     <div style={styles.inputGroup}>
                         <label style={styles.label}>Signature Mode</label>
@@ -230,6 +222,15 @@ function InvoiceForm() {
                     </div>
                 ))}
                 <button onClick={addItem} style={{...styles.btn, ...styles.btnAdd}}>+ Add New Item</button>
+            </div>
+             {/* --- LIVE SUMMARY BOX --- */}
+            <div style={styles.summaryCard}>
+                <h3 style={{marginTop: 0, color: '#2c3e50'}}>📊 Live Bill Summary</h3>
+                <div style={styles.summaryRow}><span>Taxable Amount:</span> <span>₹ {formatInr(totals.taxable)}</span></div>
+                <div style={styles.summaryRow}><span>CGST:</span> <span>₹ {formatInr(totals.cgst)}</span></div>
+                <div style={styles.summaryRow}><span>SGST:</span> <span>₹ {formatInr(totals.sgst)}</span></div>
+                <div style={styles.summaryRow}><span>Round Off:</span> <span>₹ {totals.roundOff.toFixed(2)}</span></div>
+                <div style={styles.summaryTotal}><span>Grand Total:</span> <span>₹ {formatInr(totals.grandTotal)}</span></div>
             </div>
  {/* --- MANUAL ROUND OFF BOX --- */}
             <div style={{...styles.card, backgroundColor: '#fff9e6', border: '1px solid #f1c40f', padding: '15px 30px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
