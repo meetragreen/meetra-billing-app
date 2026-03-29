@@ -1,13 +1,15 @@
+/* eslint-disable */
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './App.css';
 
 // --- API CONFIG ---
- 
-// const API_URL = 'http://localhost:5000'; // Uncomment for local testing
+const API_URL = 'https://meetra-billing-app-y223.onrender.com'; 
+
 // --- INDIAN NUMBER FORMATTER ---
 const formatInr = (num) => new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num || 0);
+
 function App() {
   const [activeTab, setActiveTab] = useState('create'); // 'create' or 'dashboard'
 
@@ -20,18 +22,8 @@ function App() {
 
       {/* TAB NAVIGATION */}
       <div style={styles.tabContainer}>
-        <button 
-            onClick={() => setActiveTab('create')} 
-            style={activeTab === 'create' ? styles.activeTab : styles.tab}
-        >
-            📄 New Invoice
-        </button>
-        <button 
-            onClick={() => setActiveTab('dashboard')} 
-            style={activeTab === 'dashboard' ? styles.activeTab : styles.tab}
-        >
-            📊 Dashboard & History
-        </button>
+        <button onClick={() => setActiveTab('create')} style={activeTab === 'create' ? styles.activeTab : styles.tab}>📄 New Invoice</button>
+        <button onClick={() => setActiveTab('dashboard')} style={activeTab === 'dashboard' ? styles.activeTab : styles.tab}>📊 Dashboard & History</button>
       </div>
 
       {/* RENDER CONTENT BASED ON TAB */}
@@ -52,8 +44,8 @@ function InvoiceForm() {
     });
     const [loading, setLoading] = useState(false);
     const [emailLoading, setEmailLoading] = useState(false);
-    // --- LIVE CALCULATION LOGIC ---
-   // --- LIVE CALCULATION LOGIC (WITH MANUAL ROUND OFF) ---
+
+    // --- LIVE CALCULATION LOGIC (WITH MANUAL ROUND OFF) ---
     const calculateTotals = () => {
         let taxable = 0, cgst = 0, sgst = 0;
         formData.items.forEach(item => {
@@ -79,6 +71,7 @@ function InvoiceForm() {
     };
     
     const totals = calculateTotals();
+
     useEffect(() => {
         axios.get(`${API_URL}/api/next-invoice-number?type=${formData.invoiceType}`)
           .then(res => setFormData(prev => ({ ...prev, customInvoiceNo: res.data.nextInvoiceNo })))
@@ -135,29 +128,23 @@ function InvoiceForm() {
 
     const handleShare = async () => {
         if (!validateForm()) return;
-    
         setLoading(true);
         try {
           const response = await axios.post(`${API_URL}/api/create-invoice`, formData, { responseType: 'blob' });
           const file = new File([response.data], `${formData.customInvoiceNo}.pdf`, { type: 'application/pdf' });
-    
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({ files: [file], title: 'Invoice', text: `Invoice ${formData.customInvoiceNo}` });
-          } 
-          else {
+          } else {
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', `${formData.customInvoiceNo}.pdf`);
             document.body.appendChild(link);
             link.click();
-    
             if (formData.buyer.phone) {
                 window.open(`https://web.whatsapp.com/send?phone=91${formData.buyer.phone}&text=Please find attached invoice ${formData.customInvoiceNo}`, '_blank');
                 alert("⚠️ ON DESKTOP: WhatsApp cannot auto-attach files.\n\n1. The PDF has been downloaded.\n2. WhatsApp Web will open now.\n3. Please drag and drop the PDF into the chat.");
-            } else {
-                 alert("⚠️ PDF Downloaded.\n\nTo share on WhatsApp Desktop, please open WhatsApp manually and attach the downloaded file.");
-            }
+            } else { alert("⚠️ PDF Downloaded.\n\nTo share on WhatsApp Desktop, please open WhatsApp manually and attach the downloaded file."); }
           }
         } catch (error) { console.error(error); alert("Share failed or was canceled."); }
         setLoading(false);
@@ -181,29 +168,6 @@ function InvoiceForm() {
                         <small style={{color: '#888'}}>Auto-incrementing. Edit if needed.</small>
                     </div>
                 </div>
-                {/* --- MANUAL ROUND OFF BOX --- */}
-            <div style={{...styles.card, backgroundColor: '#fff9e6', border: '1px solid #f1c40f', padding: '15px 30px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                <div>
-                    <h3 style={{marginTop: 0, marginBottom: '5px', color: '#d35400'}}>✂️ Manual Round Off / Discount</h3>
-                    <small style={{color: '#7f8c8d'}}>ટોટલ ઓછું કરવા માટે માઇનસ (-) માં રકમ લખો (દા.ત. -5.50)</small>
-                </div>
-                <input 
-                    type="number" 
-                    placeholder="Auto" 
-                    style={{...styles.input, width: '150px', fontSize: '1.2rem', fontWeight: 'bold'}} 
-                    value={formData.customRoundOff} 
-                    onChange={(e) => setFormData({...formData, customRoundOff: e.target.value})} 
-                />
-            </div>
-                {/* --- LIVE SUMMARY BOX --- */}
-            <div style={styles.summaryCard}>
-                <h3 style={{marginTop: 0, color: '#2c3e50'}}>📊 Live Bill Summary</h3>
-                <div style={styles.summaryRow}><span>Taxable Amount:</span> <span>₹ {formatInr(totals.taxable)}</span></div>
-                <div style={styles.summaryRow}><span>CGST:</span> <span>₹ {formatInr(totals.cgst)}</span></div>
-                <div style={styles.summaryRow}><span>SGST:</span> <span>₹ {formatInr(totals.sgst)}</span></div>
-                <div style={styles.summaryRow}><span>Round Off:</span> <span>₹ {totals.roundOff.toFixed(2)}</span></div>
-                <div style={styles.summaryTotal}><span>Grand Total:</span> <span>₹ {formatInr(totals.grandTotal)}</span></div>
-            </div>
                 <div style={{...styles.gridTwo, marginTop: '20px'}}>
                     <div style={styles.inputGroup}>
                         <label style={styles.label}>Signature Mode</label>
@@ -245,6 +209,31 @@ function InvoiceForm() {
                 <button onClick={addItem} style={{...styles.btn, ...styles.btnAdd}}>+ Add New Item</button>
             </div>
 
+            {/* --- MANUAL ROUND OFF BOX --- */}
+            <div style={{...styles.card, backgroundColor: '#fff9e6', border: '1px solid #f1c40f', padding: '15px 30px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                <div>
+                    <h3 style={{marginTop: 0, marginBottom: '5px', color: '#d35400'}}>✂️ Manual Round Off / Discount</h3>
+                    <small style={{color: '#7f8c8d'}}>ટોટલ ઓછું કરવા માટે માઇનસ (-) માં રકમ લખો (દા.ત. -5.50)</small>
+                </div>
+                <input 
+                    type="number" 
+                    placeholder="Auto" 
+                    style={{...styles.input, width: '150px', fontSize: '1.2rem', fontWeight: 'bold'}} 
+                    value={formData.customRoundOff} 
+                    onChange={(e) => setFormData({...formData, customRoundOff: e.target.value})} 
+                />
+            </div>
+
+            {/* --- LIVE SUMMARY BOX --- */}
+            <div style={styles.summaryCard}>
+                <h3 style={{marginTop: 0, color: '#2c3e50'}}>📊 Live Bill Summary</h3>
+                <div style={styles.summaryRow}><span>Taxable Amount:</span> <span>₹ {formatInr(totals.taxable)}</span></div>
+                <div style={styles.summaryRow}><span>CGST:</span> <span>₹ {formatInr(totals.cgst)}</span></div>
+                <div style={styles.summaryRow}><span>SGST:</span> <span>₹ {formatInr(totals.sgst)}</span></div>
+                <div style={styles.summaryRow}><span>Round Off:</span> <span>₹ {totals.roundOff.toFixed(2)}</span></div>
+                <div style={styles.summaryTotal}><span>Grand Total:</span> <span>₹ {formatInr(totals.grandTotal)}</span></div>
+            </div>
+
             <div style={styles.buttonContainer}>
                 <button onClick={handleDownload} disabled={loading} style={{...styles.btn, ...styles.btnPrimary}}>{loading ? 'Generating...' : `⬇ Download`}</button>
                 <button onClick={handleEmail} disabled={emailLoading} style={{...styles.btn, ...styles.btnSecondary}}>{emailLoading ? 'Sending...' : '✉ Send Email'}</button>
@@ -254,40 +243,26 @@ function InvoiceForm() {
     );
 }
 
-// --- COMPONENT 2: DASHBOARD (FIXED USECALLBACK) ---
+// --- COMPONENT 2: DASHBOARD ---
 function Dashboard() {
     const [stats, setStats] = useState([]);
     const [invoices, setInvoices] = useState([]);
     const [year, setYear] = useState(new Date().getFullYear());
 
-    // ✅ FIXED: Wrapped in useCallback to satisfy Vercel Linter
     const fetchData = useCallback(() => {
-        axios.get(`${API_URL}/api/dashboard?year=${year}`)
-            .then(res => setStats(res.data))
-            .catch(err => console.error(err));
-        
-        axios.get(`${API_URL}/api/invoices`)
-            .then(res => setInvoices(res.data))
-            .catch(err => console.error(err));
-    }, [year]); // Dependencies added
+        axios.get(`${API_URL}/api/dashboard?year=${year}`).then(res => setStats(res.data)).catch(err => console.error(err));
+        axios.get(`${API_URL}/api/invoices`).then(res => setInvoices(res.data)).catch(err => console.error(err));
+    }, [year]);
 
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]); // Dependency added
+    useEffect(() => { fetchData(); }, [fetchData]);
 
     const handleDelete = (id) => {
         if(!window.confirm("Are you sure you want to delete this invoice?")) return;
-        axios.delete(`${API_URL}/api/invoices/${id}`)
-            .then(() => {
-                alert("Deleted!");
-                fetchData(); 
-            })
-            .catch(err => console.error(err));
+        axios.delete(`${API_URL}/api/invoices/${id}`).then(() => { alert("Deleted!"); fetchData(); });
     };
 
     return (
         <div style={{padding: '0 10px'}}>
-            {/* GRAPH SECTION */}
             <div style={styles.card}>
                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
                     <h2 style={styles.cardTitle}>📈 Turnover Analysis ({year})</h2>
@@ -299,19 +274,10 @@ function Dashboard() {
                 </div>
                 <div style={{ width: '100%', height: 300 }}>
                     <ResponsiveContainer>
-                        <BarChart data={stats}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Bar dataKey="Turnover" fill="#27ae60" />
-                        </BarChart>
+                        <BarChart data={stats}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip /><Legend /><Bar dataKey="Turnover" fill="#27ae60" /></BarChart>
                     </ResponsiveContainer>
                 </div>
             </div>
-
-            {/* TABLE SECTION */}
             <div style={styles.card}>
                 <h2 style={{...styles.cardTitle, marginBottom:'20px'}}>📜 Invoice History</h2>
                 <div style={{overflowX: 'auto'}}>
@@ -377,7 +343,6 @@ const styles = {
     btnDanger: { backgroundColor: '#e74c3c', width: '40px', height: '40px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', padding: 0, color: 'white', border: 'none', cursor: 'pointer' }, 
     btnAdd: { backgroundColor: '#f39c12', marginTop: '20px' },
     buttonContainer: { display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '40px' }
-    
 };
 
 export default App;

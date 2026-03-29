@@ -140,7 +140,6 @@ const generatePDF = async (invoiceData, signatureType) => {
 };
 
 const calculateInvoice = async (reqBody) => {
-    // અહી customRoundOff ઉમેર્યું છે 
     const { buyer, items, invoiceType, customInvoiceNo, customRoundOff } = reqBody;
     let totalTaxable = 0, totalCGST = 0, totalSGST = 0, taxBreakdown = {};
 
@@ -165,7 +164,7 @@ const calculateInvoice = async (reqBody) => {
 
     const grandTotalRaw = totalTaxable + totalCGST + totalSGST;
     
-    // --- MANUAL ROUND OFF APPLY ---
+    // --- MANUAL ROUND OFF LOGIC ---
     let roundOffVal = 0;
     if (customRoundOff !== undefined && customRoundOff !== '') {
         roundOffVal = parseFloat(customRoundOff) || 0;
@@ -187,7 +186,7 @@ const calculateInvoice = async (reqBody) => {
         totalSGST: totalSGST.toFixed(2),
         roundOff: roundOffVal.toFixed(2),
         grandTotal: grandTotal.toFixed(2),
-        amountInWords: `INR ${toWords.convert(parseFloat(grandTotal.toFixed(2)))}`, // અહીં ફેરફાર છે
+        amountInWords: `INR ${toWords.convert(parseFloat(grandTotal.toFixed(2)))}`, 
         taxBreakdown: Object.values(taxBreakdown)
     });
 };
