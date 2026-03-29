@@ -43,9 +43,7 @@ function App() {
 // --- COMPONENT 1: INVOICE FORM ---
 function InvoiceForm() {
     const [formData, setFormData] = useState({
-        invoiceType: 'Tax Invoice',
-        signatureType: 'Physical', 
-        customInvoiceNo: '',
+        invoiceType: 'Tax Invoice', signatureType: 'Physical', customInvoiceNo: '', customRoundOff: '',
         buyer: { name: '', address: '', gstin: '', phone: '' },
         items: [
             { description: 'SUPPLY OF ROOFTOP SOLAR SYSTEM', hsn: '85414011', quantity: '', unit: 'KW', rate: '', taxRate: '5' },
@@ -55,6 +53,7 @@ function InvoiceForm() {
     const [loading, setLoading] = useState(false);
     const [emailLoading, setEmailLoading] = useState(false);
     // --- LIVE CALCULATION LOGIC ---
+   // --- LIVE CALCULATION LOGIC (WITH MANUAL ROUND OFF) ---
     const calculateTotals = () => {
         let taxable = 0, cgst = 0, sgst = 0;
         formData.items.forEach(item => {
@@ -67,8 +66,15 @@ function InvoiceForm() {
             sgst += amount * ((taxRate / 2) / 100);
         });
         const grandTotalRaw = taxable + cgst + sgst;
-        const grandTotal = Math.round(grandTotalRaw);
-        const roundOff = grandTotal - grandTotalRaw;
+        
+        let roundOff = 0;
+        if (formData.customRoundOff !== '' && !isNaN(formData.customRoundOff)) {
+            roundOff = parseFloat(formData.customRoundOff);
+        } else {
+            roundOff = Math.round(grandTotalRaw) - grandTotalRaw;
+        }
+
+        const grandTotal = grandTotalRaw + roundOff;
         return { taxable, cgst, sgst, roundOff, grandTotal };
     };
     
@@ -175,6 +181,20 @@ function InvoiceForm() {
                         <small style={{color: '#888'}}>Auto-incrementing. Edit if needed.</small>
                     </div>
                 </div>
+                {/* --- MANUAL ROUND OFF BOX --- */}
+            <div style={{...styles.card, backgroundColor: '#fff9e6', border: '1px solid #f1c40f', padding: '15px 30px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                <div>
+                    <h3 style={{marginTop: 0, marginBottom: '5px', color: '#d35400'}}>✂️ Manual Round Off / Discount</h3>
+                    <small style={{color: '#7f8c8d'}}>ટોટલ ઓછું કરવા માટે માઇનસ (-) માં રકમ લખો (દા.ત. -5.50)</small>
+                </div>
+                <input 
+                    type="number" 
+                    placeholder="Auto" 
+                    style={{...styles.input, width: '150px', fontSize: '1.2rem', fontWeight: 'bold'}} 
+                    value={formData.customRoundOff} 
+                    onChange={(e) => setFormData({...formData, customRoundOff: e.target.value})} 
+                />
+            </div>
                 {/* --- LIVE SUMMARY BOX --- */}
             <div style={styles.summaryCard}>
                 <h3 style={{marginTop: 0, color: '#2c3e50'}}>📊 Live Bill Summary</h3>

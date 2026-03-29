@@ -140,7 +140,8 @@ const generatePDF = async (invoiceData, signatureType) => {
 };
 
 const calculateInvoice = async (reqBody) => {
-    const { buyer, items, invoiceType, customInvoiceNo } = reqBody;
+    // અહી customRoundOff ઉમેર્યું છે 
+    const { buyer, items, invoiceType, customInvoiceNo, customRoundOff } = reqBody;
     let totalTaxable = 0, totalCGST = 0, totalSGST = 0, taxBreakdown = {};
 
     const calculatedItems = items.map(item => {
@@ -163,7 +164,16 @@ const calculateInvoice = async (reqBody) => {
     });
 
     const grandTotalRaw = totalTaxable + totalCGST + totalSGST;
-    const grandTotal = Math.round(grandTotalRaw);
+    
+    // --- MANUAL ROUND OFF APPLY ---
+    let roundOffVal = 0;
+    if (customRoundOff !== undefined && customRoundOff !== '') {
+        roundOffVal = parseFloat(customRoundOff) || 0;
+    } else {
+        roundOffVal = Math.round(grandTotalRaw) - grandTotalRaw;
+    }
+
+    const grandTotal = grandTotalRaw + roundOffVal;
     
     return new Invoice({
         invoiceNo: customInvoiceNo, 
@@ -175,9 +185,9 @@ const calculateInvoice = async (reqBody) => {
         taxableValue: totalTaxable.toFixed(2),
         totalCGST: totalCGST.toFixed(2),
         totalSGST: totalSGST.toFixed(2),
-        roundOff: (grandTotal - grandTotalRaw).toFixed(2),
+        roundOff: roundOffVal.toFixed(2),
         grandTotal: grandTotal.toFixed(2),
-        amountInWords: `INR ${toWords.convert(grandTotal)}`,
+        amountInWords: `INR ${toWords.convert(parseFloat(grandTotal.toFixed(2)))}`, // અહીં ફેરફાર છે
         taxBreakdown: Object.values(taxBreakdown)
     });
 };
