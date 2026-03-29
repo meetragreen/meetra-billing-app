@@ -4,6 +4,12 @@ module.exports = (data, logoBase64, stampBase64) => {
     const logoSrc = logoBase64 || "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
     const titleText = data.invoiceType ? data.invoiceType.toUpperCase() : "TAX INVOICE";
 
+    // --- INDIAN NUMBER FORMATTER (ફક્ત પ્રિન્ટ કરવા માટે) ---
+    const formatInr = (num) => {
+        const parsed = parseFloat(num) || 0;
+        return new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parsed);
+    };
+
 return `
 <!DOCTYPE html>
 <html>
@@ -116,8 +122,8 @@ return `
                     </td>
                     <td class="text-center">${item.hsn}</td>
                     <td class="text-center">${item.quantity} ${item.unit}</td>
-                    <td class="text-right">${item.rate}</td>
-                    <td class="text-right bold">${item.amount}</td>
+                    <td class="text-right">${formatInr(item.rate)}</td>
+                    <td class="text-right bold">${formatInr(item.amount)}</td>
                 </tr>
                 `).join('')}
                 <tr class="filler-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
@@ -129,20 +135,20 @@ return `
                 <div><span class="bold">Total In Words:</span></div>
                 <div style="margin-bottom: 10px; font-style: italic;">${data.amountInWords} Only</div>
                 <div class="bold" style="border-bottom: 1px solid #ccc; margin-bottom: 5px;">Bank Details</div>
-                <div>Bank: ${data.bankDetails.bankName}</div>
-                <div>IFSC: ${data.bankDetails.ifsc}</div>
-                <div>A/C No: ${data.bankDetails.accNo}</div>
-                <div>Branch: ${data.bankDetails.branch}</div>
+                <div>Bank: HDFC BANK</div>
+                <div>IFSC: HDFC0001234</div>
+                <div>A/C No: 50200012345678</div>
+                <div>Branch: JETPUR</div>
                 <div class="bold" style="margin-top: 15px; border-bottom: 1px solid #ccc;">Terms & Conditions</div>
                 <div class="small-text">1. Goods once sold will not be taken back.<br>2. Interest @18% per annum will be charged on over due amount.<br>3. Subject to Jetpur Jurisdiction only.</div>
             </div>
             <div class="math-section">
-                <div class="math-row"><span>Taxable Amount</span><span>${data.taxableValue}</span></div>
-                <div class="math-row"><span>CGST</span><span>${data.totalCGST}</span></div>
-                <div class="math-row"><span>SGST</span><span>${data.totalSGST}</span></div>
-                <div class="math-row"><span>Round Off</span><span>${data.roundOff}</span></div>
-                <div class="final-total"><span>Total</span><span>₹ ${data.grandTotal}</span></div>
-                <div class="final-total" style="border-top: none;"><span>Balance Due</span><span>₹ ${data.grandTotal}</span></div>
+                <div class="math-row"><span>Taxable Amount</span><span>${formatInr(data.taxableValue)}</span></div>
+                <div class="math-row"><span>CGST</span><span>${formatInr(data.totalCGST)}</span></div>
+                <div class="math-row"><span>SGST</span><span>${formatInr(data.totalSGST)}</span></div>
+                <div class="math-row"><span>Round Off</span><span>${formatInr(data.roundOff)}</span></div>
+                <div class="final-total"><span>Total</span><span>₹ ${formatInr(data.grandTotal)}</span></div>
+                <div class="final-total" style="border-top: none;"><span>Balance Due</span><span>₹ ${formatInr(data.grandTotal)}</span></div>
                 
                 <div class="text-center" style="margin-top: 40px;">
                     ${stampBase64 
@@ -165,16 +171,16 @@ return `
             <tbody>
                 ${data.taxBreakdown.map(tax => `
                 <tr>
-                    <td>${tax.hsn}</td><td class="text-right">${tax.taxable.toFixed(2)}</td>
-                    <td>${tax.rate / 2}%</td><td class="text-right">${tax.cgstAmount.toFixed(2)}</td>
-                    <td>${tax.rate / 2}%</td><td class="text-right">${tax.sgstAmount.toFixed(2)}</td>
-                    <td class="text-right">${(tax.cgstAmount + tax.sgstAmount).toFixed(2)}</td>
+                    <td>${tax.hsn}</td><td class="text-right">${formatInr(tax.taxable)}</td>
+                    <td>${tax.rate / 2}%</td><td class="text-right">${formatInr(tax.cgstAmount)}</td>
+                    <td>${tax.rate / 2}%</td><td class="text-right">${formatInr(tax.sgstAmount)}</td>
+                    <td class="text-right">${formatInr(tax.cgstAmount + tax.sgstAmount)}</td>
                 </tr>`).join('')}
                 <tr class="bold">
-                    <td class="text-right">Total</td><td class="text-right">${data.taxableValue}</td>
-                    <td></td><td class="text-right">${data.totalCGST}</td>
-                    <td></td><td class="text-right">${data.totalSGST}</td>
-                    <td class="text-right">${(parseFloat(data.totalCGST) + parseFloat(data.totalSGST)).toFixed(2)}</td>
+                    <td class="text-right">Total</td><td class="text-right">${formatInr(data.taxableValue)}</td>
+                    <td></td><td class="text-right">${formatInr(data.totalCGST)}</td>
+                    <td></td><td class="text-right">${formatInr(data.totalSGST)}</td>
+                    <td class="text-right">${formatInr(parseFloat(data.totalCGST) + parseFloat(data.totalSGST))}</td>
                 </tr>
             </tbody>
         </table>
