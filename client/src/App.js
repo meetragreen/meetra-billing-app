@@ -6,7 +6,8 @@ import './App.css';
 // --- API CONFIG ---
  
 // const API_URL = 'http://localhost:5000'; // Uncomment for local testing
-
+// --- INDIAN NUMBER FORMATTER ---
+const formatInr = (num) => new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num || 0);
 function App() {
   const [activeTab, setActiveTab] = useState('create'); // 'create' or 'dashboard'
 
@@ -53,7 +54,25 @@ function InvoiceForm() {
     });
     const [loading, setLoading] = useState(false);
     const [emailLoading, setEmailLoading] = useState(false);
-
+    // --- LIVE CALCULATION LOGIC ---
+    const calculateTotals = () => {
+        let taxable = 0, cgst = 0, sgst = 0;
+        formData.items.forEach(item => {
+            const qty = parseFloat(item.quantity) || 0;
+            const rate = parseFloat(item.rate) || 0;
+            const taxRate = parseFloat(item.taxRate) || 0;
+            const amount = qty * rate;
+            taxable += amount;
+            cgst += amount * ((taxRate / 2) / 100);
+            sgst += amount * ((taxRate / 2) / 100);
+        });
+        const grandTotalRaw = taxable + cgst + sgst;
+        const grandTotal = Math.round(grandTotalRaw);
+        const roundOff = grandTotal - grandTotalRaw;
+        return { taxable, cgst, sgst, roundOff, grandTotal };
+    };
+    
+    const totals = calculateTotals();
     useEffect(() => {
         axios.get(`${API_URL}/api/next-invoice-number?type=${formData.invoiceType}`)
           .then(res => setFormData(prev => ({ ...prev, customInvoiceNo: res.data.nextInvoiceNo })))
@@ -156,6 +175,15 @@ function InvoiceForm() {
                         <small style={{color: '#888'}}>Auto-incrementing. Edit if needed.</small>
                     </div>
                 </div>
+                {/* --- LIVE SUMMARY BOX --- */}
+            <div style={styles.summaryCard}>
+                <h3 style={{marginTop: 0, color: '#2c3e50'}}>📊 Live Bill Summary</h3>
+                <div style={styles.summaryRow}><span>Taxable Amount:</span> <span>₹ {formatInr(totals.taxable)}</span></div>
+                <div style={styles.summaryRow}><span>CGST:</span> <span>₹ {formatInr(totals.cgst)}</span></div>
+                <div style={styles.summaryRow}><span>SGST:</span> <span>₹ {formatInr(totals.sgst)}</span></div>
+                <div style={styles.summaryRow}><span>Round Off:</span> <span>₹ {totals.roundOff.toFixed(2)}</span></div>
+                <div style={styles.summaryTotal}><span>Grand Total:</span> <span>₹ {formatInr(totals.grandTotal)}</span></div>
+            </div>
                 <div style={{...styles.gridTwo, marginTop: '20px'}}>
                     <div style={styles.inputGroup}>
                         <label style={styles.label}>Signature Mode</label>
@@ -302,6 +330,9 @@ function Dashboard() {
 }
 
 const styles = {
+    summaryCard: { backgroundColor: '#e8f8f5', padding: '20px', borderRadius: '12px', maxWidth: '1000px', margin: '0 auto 30px auto', border: '1px solid #1abc9c' },
+    summaryRow: { display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: '1.1rem', color: '#2c3e50', fontWeight: '500' },
+    summaryTotal: { display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontSize: '1.4rem', fontWeight: 'bold', borderTop: '2px solid #1abc9c', marginTop: '10px', color: '#16a085' },
     container: { fontFamily: '"Segoe UI", Roboto, sans-serif', backgroundColor: '#f4f7f6', minHeight: '100vh', padding: '40px 20px', boxSizing: 'border-box' },
     header: { textAlign: 'center', marginBottom: '40px' },
     title: { color: '#2c3e50', fontSize: '2.5rem', fontWeight: '700', margin: '0' },
@@ -326,6 +357,7 @@ const styles = {
     btnDanger: { backgroundColor: '#e74c3c', width: '40px', height: '40px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', padding: 0, color: 'white', border: 'none', cursor: 'pointer' }, 
     btnAdd: { backgroundColor: '#f39c12', marginTop: '20px' },
     buttonContainer: { display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '40px' }
+    
 };
 
 export default App;
