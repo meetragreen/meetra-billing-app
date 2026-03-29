@@ -164,7 +164,7 @@ const calculateInvoice = async (reqBody) => {
 
     const grandTotalRaw = totalTaxable + totalCGST + totalSGST;
     
-    // --- MANUAL ROUND OFF LOGIC ---
+    // --- MANUAL ROUND OFF APPLY ---
     let roundOffVal = 0;
     if (customRoundOff !== undefined && customRoundOff !== '') {
         roundOffVal = parseFloat(customRoundOff) || 0;
@@ -174,6 +174,9 @@ const calculateInvoice = async (reqBody) => {
 
     const grandTotal = grandTotalRaw + roundOffVal;
     
+    // SAFETY LOCK: Prevent negative numbers from crashing the server
+    const safeGrandTotal = Math.max(0, parseFloat(grandTotal.toFixed(2)));
+
     return new Invoice({
         invoiceNo: customInvoiceNo, 
         invoiceType: invoiceType || 'Tax Invoice',
@@ -186,7 +189,7 @@ const calculateInvoice = async (reqBody) => {
         totalSGST: totalSGST.toFixed(2),
         roundOff: roundOffVal.toFixed(2),
         grandTotal: grandTotal.toFixed(2),
-        amountInWords: `INR ${toWords.convert(parseFloat(grandTotal.toFixed(2)))}`, 
+        amountInWords: `INR ${toWords.convert(safeGrandTotal)}`,
         taxBreakdown: Object.values(taxBreakdown)
     });
 };

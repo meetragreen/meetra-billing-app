@@ -11,7 +11,7 @@ const API_URL = 'https://meetra-billing-app-y223.onrender.com';
 const formatInr = (num) => new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num || 0);
 
 function App() {
-  const [activeTab, setActiveTab] = useState('create'); // 'create' or 'dashboard'
+  const [activeTab, setActiveTab] = useState('create'); 
 
   return (
     <div style={styles.container}>
@@ -20,19 +20,16 @@ function App() {
         <p>Professional Invoicing Suite</p>
       </div>
 
-      {/* TAB NAVIGATION */}
       <div style={styles.tabContainer}>
         <button onClick={() => setActiveTab('create')} style={activeTab === 'create' ? styles.activeTab : styles.tab}>📄 New Invoice</button>
         <button onClick={() => setActiveTab('dashboard')} style={activeTab === 'dashboard' ? styles.activeTab : styles.tab}>📊 Dashboard & History</button>
       </div>
 
-      {/* RENDER CONTENT BASED ON TAB */}
       {activeTab === 'create' ? <InvoiceForm /> : <Dashboard />}
     </div>
   );
 }
 
-// --- COMPONENT 1: INVOICE FORM ---
 function InvoiceForm() {
     const [formData, setFormData] = useState({
         invoiceType: 'Tax Invoice', signatureType: 'Physical', customInvoiceNo: '', customRoundOff: '',
