@@ -350,9 +350,7 @@ function Dashboard() {
 }
 
 const styles = {
-    summaryCard: { backgroundColor: '#e8f8f5', padding: '20px', borderRadius: '12px', maxWidth: '1000px', margin: '0 auto 30px auto', border: '1px solid #1abc9c' },
-    summaryRow: { display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: '1.1rem', color: '#2c3e50', fontWeight: '500' },
-    summaryTotal: { display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontSize: '1.4rem', fontWeight: 'bold', borderTop: '2px solid #1abc9c', marginTop: '10px', color: '#16a085' },
+    
     container: { fontFamily: '"Segoe UI", Roboto, sans-serif', backgroundColor: '#f4f7f6', minHeight: '100vh', padding: '40px 20px', boxSizing: 'border-box' },
     header: { textAlign: 'center', marginBottom: '40px' },
     title: { color: '#2c3e50', fontSize: '2.5rem', fontWeight: '700', margin: '0' },
@@ -376,7 +374,10 @@ const styles = {
     btnSuccess: { backgroundColor: '#25D366' },
     btnDanger: { backgroundColor: '#e74c3c', width: '40px', height: '40px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', padding: 0, color: 'white', border: 'none', cursor: 'pointer' }, 
     btnAdd: { backgroundColor: '#f39c12', marginTop: '20px' },
-    buttonContainer: { display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '40px' }
+    buttonContainer: { display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '40px' },
+    summaryCard: { backgroundColor: '#e8f8f5', padding: '20px', borderRadius: '12px', maxWidth: '1000px', margin: '0 auto 30px auto', border: '1px solid #1abc9c' },
+    summaryRow: { display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: '1.1rem', color: '#2c3e50', fontWeight: '500' },
+    summaryTotal: { display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontSize: '1.4rem', fontWeight: 'bold', borderTop: '2px solid #1abc9c', marginTop: '10px', color: '#16a085' }
     
 };
 
