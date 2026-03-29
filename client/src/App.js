@@ -181,20 +181,7 @@ function InvoiceForm() {
                         <small style={{color: '#888'}}>Auto-incrementing. Edit if needed.</small>
                     </div>
                 </div>
-                {/* --- MANUAL ROUND OFF BOX --- */}
-            <div style={{...styles.card, backgroundColor: '#fff9e6', border: '1px solid #f1c40f', padding: '15px 30px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                <div>
-                    <h3 style={{marginTop: 0, marginBottom: '5px', color: '#d35400'}}>✂️ Manual Round Off / Discount</h3>
-                    <small style={{color: '#7f8c8d'}}>ટોટલ ઓછું કરવા માટે માઇનસ (-) માં રકમ લખો (દા.ત. -5.50)</small>
-                </div>
-                <input 
-                    type="number" 
-                    placeholder="Auto" 
-                    style={{...styles.input, width: '150px', fontSize: '1.2rem', fontWeight: 'bold'}} 
-                    value={formData.customRoundOff} 
-                    onChange={(e) => setFormData({...formData, customRoundOff: e.target.value})} 
-                />
-            </div>
+               
                 {/* --- LIVE SUMMARY BOX --- */}
             <div style={styles.summaryCard}>
                 <h3 style={{marginTop: 0, color: '#2c3e50'}}>📊 Live Bill Summary</h3>
@@ -244,7 +231,20 @@ function InvoiceForm() {
                 ))}
                 <button onClick={addItem} style={{...styles.btn, ...styles.btnAdd}}>+ Add New Item</button>
             </div>
-
+ {/* --- MANUAL ROUND OFF BOX --- */}
+            <div style={{...styles.card, backgroundColor: '#fff9e6', border: '1px solid #f1c40f', padding: '15px 30px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                <div>
+                    <h3 style={{marginTop: 0, marginBottom: '5px', color: '#d35400'}}>✂️ Manual Round Off / Discount</h3>
+                    <small style={{color: '#7f8c8d'}}>ટોટલ ઓછું કરવા માટે માઇનસ (-) માં રકમ લખો (દા.ત. -5.50)</small>
+                </div>
+                <input 
+                    type="number" 
+                    placeholder="Auto" 
+                    style={{...styles.input, width: '150px', fontSize: '1.2rem', fontWeight: 'bold'}} 
+                    value={formData.customRoundOff} 
+                    onChange={(e) => setFormData({...formData, customRoundOff: e.target.value})} 
+                />
+            </div>
             <div style={styles.buttonContainer}>
                 <button onClick={handleDownload} disabled={loading} style={{...styles.btn, ...styles.btnPrimary}}>{loading ? 'Generating...' : `⬇ Download`}</button>
                 <button onClick={handleEmail} disabled={emailLoading} style={{...styles.btn, ...styles.btnSecondary}}>{emailLoading ? 'Sending...' : '✉ Send Email'}</button>
