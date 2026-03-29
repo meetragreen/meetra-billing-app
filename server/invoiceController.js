@@ -140,6 +140,7 @@ const generatePDF = async (invoiceData, signatureType) => {
 };
 
 const calculateInvoice = async (reqBody) => {
+    // અહી customRoundOff ઉમેર્યું છે 
     const { buyer, items, invoiceType, customInvoiceNo, customRoundOff } = reqBody;
     let totalTaxable = 0, totalCGST = 0, totalSGST = 0, taxBreakdown = {};
 
@@ -174,9 +175,6 @@ const calculateInvoice = async (reqBody) => {
 
     const grandTotal = grandTotalRaw + roundOffVal;
     
-    // SAFETY LOCK: Prevent negative numbers from crashing the server
-    const safeGrandTotal = Math.max(0, parseFloat(grandTotal.toFixed(2)));
-
     return new Invoice({
         invoiceNo: customInvoiceNo, 
         invoiceType: invoiceType || 'Tax Invoice',
@@ -189,7 +187,7 @@ const calculateInvoice = async (reqBody) => {
         totalSGST: totalSGST.toFixed(2),
         roundOff: roundOffVal.toFixed(2),
         grandTotal: grandTotal.toFixed(2),
-        amountInWords: `INR ${toWords.convert(safeGrandTotal)}`,
+        amountInWords: `INR ${toWords.convert(parseFloat(grandTotal.toFixed(2)))}`, // અહીં ફેરફાર છે
         taxBreakdown: Object.values(taxBreakdown)
     });
 };
