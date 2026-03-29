@@ -11,39 +11,6 @@ const toWords = new ToWords({
   converterOptions: { currency: false, ignoreDecimal: false, ignoreZeroCurrency: false }
 });
 
-// --- HELPER: FORMAT NUMBERS TO INDIAN STYLE (1,33,000.00) ---
-const formatInr = (num) => {
-    const parsedNum = parseFloat(num) || 0;
-    return new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parsedNum);
-};
-
-// --- HELPER: PREPARE DATA FOR PDF ONLY (Doesn't affect DB) ---
-const preparePdfData = (invoice) => {
-    const data = JSON.parse(JSON.stringify(invoice));
-    data.grandTotal = formatInr(data.grandTotal);
-    data.taxableValue = formatInr(data.taxableValue);
-    data.totalCGST = formatInr(data.totalCGST);
-    data.totalSGST = formatInr(data.totalSGST);
-    data.roundOff = formatInr(data.roundOff);
-    
-    if (data.items) {
-        data.items = data.items.map(item => ({
-            ...item,
-            rate: formatInr(item.rate),
-            amount: formatInr(item.amount)
-        }));
-    }
-    if (data.taxBreakdown) {
-        data.taxBreakdown = data.taxBreakdown.map(tax => ({
-            ...tax,
-            taxable: formatInr(tax.taxable),
-            cgstAmount: formatInr(tax.cgstAmount),
-            sgstAmount: formatInr(tax.sgstAmount)
-        }));
-    }
-    return data;
-};
-
 // --- 1. GET NEXT INVOICE NUMBER ---
 exports.getNextInvoiceNumber = async (req, res) => {
     try {
@@ -220,11 +187,7 @@ exports.createInvoice = async (req, res) => {
         const { signatureType } = req.body; 
         const newInvoice = await calculateInvoice(req.body);
         await newInvoice.save(); 
-        
-        // Use formatted data ONLY for PDF generation
-        const pdfData = preparePdfData(newInvoice);
-        const pdfBuffer = await generatePDF(pdfData, signatureType);
-        
+        const pdfBuffer = await generatePDF(newInvoice, signatureType);
         res.set({ 'Content-Type': 'application/pdf', 'Content-Length': pdfBuffer.length });
         res.send(pdfBuffer);
     } catch (error) { console.log("Error:", error); res.status(500).json({ message: 'Error', error }); }
@@ -235,10 +198,7 @@ exports.emailInvoice = async (req, res) => {
     try {
         const { email, signatureType } = req.body;
         const newInvoice = await calculateInvoice(req.body); 
-        
-        // Use formatted data ONLY for PDF generation
-        const pdfData = preparePdfData(newInvoice);
-        const pdfBuffer = await generatePDF(pdfData, signatureType);
+        const pdfBuffer = await generatePDF(newInvoice, signatureType);
 
         const transporter = nodemailer.createTransport({
             host: "smtp.gmail.com", 
