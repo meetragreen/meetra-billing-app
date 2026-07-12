@@ -4,10 +4,11 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import './App.css';
 
 // --- API CONFIG ---
- const API_URL = 'https://meetra-billing-app-rku3.onrender.com';
+const API_URL = 'https://meetra-billing-app-rku3.onrender.com';
 // const API_URL = 'http://localhost:5000'; // Uncomment for local testing
 // --- INDIAN NUMBER FORMATTER ---
 const formatInr = (num) => new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num || 0);
+
 function App() {
   const [activeTab, setActiveTab] = useState('create'); // 'create' or 'dashboard'
 
@@ -52,8 +53,8 @@ function InvoiceForm() {
     });
     const [loading, setLoading] = useState(false);
     const [emailLoading, setEmailLoading] = useState(false);
-    // --- LIVE CALCULATION LOGIC ---
-   // --- LIVE CALCULATION LOGIC (WITH MANUAL ROUND OFF) ---
+
+    // --- LIVE CALCULATION LOGIC (WITH MANUAL ROUND OFF) ---
     const calculateTotals = () => {
         let taxable = 0, cgst = 0, sgst = 0;
         formData.items.forEach(item => {
@@ -79,6 +80,7 @@ function InvoiceForm() {
     };
     
     const totals = calculateTotals();
+
     useEffect(() => {
         axios.get(`${API_URL}/api/next-invoice-number?type=${formData.invoiceType}`)
           .then(res => setFormData(prev => ({ ...prev, customInvoiceNo: res.data.nextInvoiceNo })))
@@ -91,7 +93,10 @@ function InvoiceForm() {
         newItems[index][field] = value;
         setFormData({ ...formData, items: newItems });
     };
-    const addItem = () => setFormData({ ...formData, items: [...formData.items, { description: '', hsn: '', quantity: '', unit: 'KW', rate: '', taxRate: '12' }] });
+
+    // ફેરફાર ૧: addItem ફંક્શનમાં યુનિટ ખાલી કર્યું
+    const addItem = () => setFormData({ ...formData, items: [...formData.items, { description: '', hsn: '', quantity: '', unit: '', rate: '', taxRate: '12' }] });
+    
     const removeItem = (index) => setFormData({ ...formData, items: formData.items.filter((_, i) => i !== index) });
 
     const validateForm = () => {
@@ -204,16 +209,21 @@ function InvoiceForm() {
                 </div>
             </div>
 
+            {/* ફેરફાર ૨: Invoice Items વાળા બોક્સમાં 'Unit' નું ખાનું ઉમેર્યું */}
             <div style={styles.card}>
                 <div style={styles.cardHeader}><span style={{fontSize: '24px'}}>📦</span><h2 style={styles.cardTitle}>Invoice Items</h2></div>
                 <div style={{...styles.itemRow, borderBottom: '2px solid #ddd', paddingBottom: '10px', marginBottom: '10px'}}>
-                    <span style={styles.label}>Item Name</span><span style={styles.label}>HSN</span><span style={styles.label}>Qty</span><span style={styles.label}>Rate</span><span style={styles.label}>Tax</span><span style={{textAlign:'center', ...styles.label}}>Del</span>
+                    <span style={styles.label}>Item Name</span><span style={styles.label}>HSN</span><span style={styles.label}>Qty</span><span style={styles.label}>Unit</span><span style={styles.label}>Rate</span><span style={styles.label}>Tax</span><span style={{textAlign:'center', ...styles.label}}>Del</span>
                 </div>
                 {formData.items.map((item, index) => (
                     <div key={index} style={styles.itemRow}>
                         <input style={styles.input} placeholder="Item Description" value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} />
                         <input style={styles.input} placeholder="HSN" value={item.hsn} onChange={(e) => handleItemChange(index, 'hsn', e.target.value)} />
                         <input style={styles.input} placeholder="0" type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} />
+                        
+                        {/* --- નવું Unit નું ખાનું --- */}
+                        <input style={styles.input} placeholder="KW/PCS" value={item.unit} onChange={(e) => handleItemChange(index, 'unit', e.target.value)} />
+                        
                         <input style={styles.input} placeholder="₹ 0.00" type="number" value={item.rate} onChange={(e) => handleItemChange(index, 'rate', e.target.value)} />
                         <select style={styles.input} value={item.taxRate} onChange={(e) => handleItemChange(index, 'taxRate', e.target.value)}>
                             <option value={5}>5%</option><option value={12}>12%</option><option value={18}>18%</option>
@@ -223,6 +233,7 @@ function InvoiceForm() {
                 ))}
                 <button onClick={addItem} style={{...styles.btn, ...styles.btnAdd}}>+ Add New Item</button>
             </div>
+
              {/* --- LIVE SUMMARY BOX --- */}
             <div style={styles.summaryCard}>
                 <h3 style={{marginTop: 0, color: '#2c3e50'}}>📊 Live Bill Summary</h3>
@@ -232,7 +243,8 @@ function InvoiceForm() {
                 <div style={styles.summaryRow}><span>Round Off:</span> <span>₹ {totals.roundOff.toFixed(2)}</span></div>
                 <div style={styles.summaryTotal}><span>Grand Total:</span> <span>₹ {formatInr(totals.grandTotal)}</span></div>
             </div>
- {/* --- MANUAL ROUND OFF BOX --- */}
+
+            {/* --- MANUAL ROUND OFF BOX --- */}
             <div style={{...styles.card, backgroundColor: '#fff9e6', border: '1px solid #f1c40f', padding: '15px 30px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
                 <div>
                     <h3 style={{marginTop: 0, marginBottom: '5px', color: '#d35400'}}>✂️ Manual Round Off / Discount</h3>
@@ -246,6 +258,7 @@ function InvoiceForm() {
                     onChange={(e) => setFormData({...formData, customRoundOff: e.target.value})} 
                 />
             </div>
+
             <div style={styles.buttonContainer}>
                 <button onClick={handleDownload} disabled={loading} style={{...styles.btn, ...styles.btnPrimary}}>{loading ? 'Generating...' : `⬇ Download`}</button>
                 <button onClick={handleEmail} disabled={emailLoading} style={{...styles.btn, ...styles.btnSecondary}}>{emailLoading ? 'Sending...' : '✉ Send Email'}</button>
@@ -255,13 +268,12 @@ function InvoiceForm() {
     );
 }
 
-// --- COMPONENT 2: DASHBOARD (FIXED USECALLBACK) ---
+// --- COMPONENT 2: DASHBOARD ---
 function Dashboard() {
     const [stats, setStats] = useState([]);
     const [invoices, setInvoices] = useState([]);
     const [year, setYear] = useState(new Date().getFullYear());
 
-    // ✅ FIXED: Wrapped in useCallback to satisfy Vercel Linter
     const fetchData = useCallback(() => {
         axios.get(`${API_URL}/api/dashboard?year=${year}`)
             .then(res => setStats(res.data))
@@ -270,11 +282,11 @@ function Dashboard() {
         axios.get(`${API_URL}/api/invoices`)
             .then(res => setInvoices(res.data))
             .catch(err => console.error(err));
-    }, [year]); // Dependencies added
+    }, [year]);
 
     useEffect(() => {
         fetchData();
-    }, [fetchData]); // Dependency added
+    }, [fetchData]);
 
     const handleDelete = (id) => {
         if(!window.confirm("Are you sure you want to delete this invoice?")) return;
@@ -351,7 +363,6 @@ function Dashboard() {
 }
 
 const styles = {
-    
     container: { fontFamily: '"Segoe UI", Roboto, sans-serif', backgroundColor: '#f4f7f6', minHeight: '100vh', padding: '40px 20px', boxSizing: 'border-box' },
     header: { textAlign: 'center', marginBottom: '40px' },
     title: { color: '#2c3e50', fontSize: '2.5rem', fontWeight: '700', margin: '0' },
@@ -368,7 +379,10 @@ const styles = {
     invoiceInput: { padding: '12px 15px', borderRadius: '8px', border: '2px solid #2980b9', fontSize: '1.2rem', fontWeight: 'bold', color: '#2980b9', outline: 'none', width: '100%', boxSizing: 'border-box' },
     typeSelector: { display: 'flex', gap: '20px', marginBottom: '10px' },
     radioLabel: { fontSize: '1rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' },
-    itemRow: { display: 'grid', gridTemplateColumns: '3fr 1fr 0.7fr 1fr 1fr 50px', gap: '10px', padding: '15px 0', alignItems: 'center', borderBottom: '1px solid #f0f2f5', width: '100%' },
+    
+    // ફેરફાર ૩: નવી કોલમ માટે ડિઝાઇન (CSS) સેટ કરી 
+    itemRow: { display: 'grid', gridTemplateColumns: '2.5fr 1fr 0.7fr 0.8fr 1fr 1fr 50px', gap: '10px', padding: '15px 0', alignItems: 'center', borderBottom: '1px solid #f0f2f5', width: '100%' },
+    
     btn: { padding: '14px 28px', borderRadius: '50px', border: 'none', fontSize: '1rem', fontWeight: '600', cursor: 'pointer', color: 'white' },
     btnPrimary: { backgroundColor: '#27ae60' }, 
     btnSecondary: { backgroundColor: '#2980b9' }, 
@@ -379,7 +393,6 @@ const styles = {
     summaryCard: { backgroundColor: '#e8f8f5', padding: '20px', borderRadius: '12px', maxWidth: '1000px', margin: '0 auto 30px auto', border: '1px solid #1abc9c' },
     summaryRow: { display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: '1.1rem', color: '#2c3e50', fontWeight: '500' },
     summaryTotal: { display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontSize: '1.4rem', fontWeight: 'bold', borderTop: '2px solid #1abc9c', marginTop: '10px', color: '#16a085' }
-    
 };
 
 export default App;
